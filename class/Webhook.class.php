@@ -60,8 +60,8 @@
 
             try
             {    
-                $pst = $con->prepare("select id from webhook where code_transaction = :code_transaction");
-                $pst->bindParam(":code_transaction", $code_transaction);
+                $pst = $con->prepare("select id from tb_clientes where id_venda = :id_venda");
+                $pst->bindParam(":id_venda", $code_transaction);
                 $pst->execute();
                 
 
@@ -92,15 +92,21 @@
                 throw new PDOException($p->getMessage());
             }
 
+
             try
             {
                 
-                $pst = $con->prepare("update webhook set date_payment = :date_payment, expiration_trans = :expiration_trans, updated_at = now() where code_transaction = :code_transaction");
-                $pst->bindParam(":code_transaction", $this->code_transaction);
-                $pst->bindParam(":date_payment", $this->date_payment);
-                $pst->bindParam(":expiration_trans", $this->expiration_trans);
-                $pst->execute();
+                $pst = $con->prepare("update tb_clientes set  expiracao = :expiracao, status_compra = :status_compra, ultima_atualizacao = now() where id_venda = :id_venda");
+                $pst->bindParam(":id_venda", $this->code_transaction);
+                $pst->bindParam(":expiracao", $this->expiration_trans);
+                $status = "active";
+                if($this->expiration_trans < date("Y-m-d H:i:s"))
+                    $status = "canceled";
 
+                $pst->bindParam(":status_compra", $status);
+                
+                $pst->execute();
+                
                 if($pst->rowCount() > 0)
                 {
                         
@@ -111,7 +117,7 @@
             }
             catch(PDOException $p)
             {
-                throw new PDOException("Erro ao obter licenca ".$p->getMessage());
+                throw new PDOException("Erro ao obter informações da licença ".$p->getMessage());
             }
         }
 
@@ -133,20 +139,26 @@
             try
             {
                 
-                $pst = $con->prepare("insert into webhook (product_key, trans_key, code_transaction,product_name,client_name,client_email,client_phone,date_payment,recurrence_interval_type,plan_name,canceled_recurrence,expiration_trans, created_at, updated_at) values(:product_key, :trans_key, :code_transaction, :product_name, :client_name, :client_email, :client_phone, :date_payment, :recurrence_interval_type, :plan_name, :canceled_recurrence, :expiration_trans, now(), now())");
-                $pst->bindParam(":product_key", $this->product_key);
-                $pst->bindParam(":trans_key", $this->trans_key);
-                $pst->bindParam(":code_transaction", $this->code_transaction);
-                $pst->bindParam(":product_name", $this->product_name);
-                $pst->bindParam(":client_name", $this->client_name);
-                $pst->bindParam(":client_email", $this->client_email);
-                $pst->bindParam(":client_phone", $this->client_phone);
-                $pst->bindParam(":date_payment", $this->date_payment);
-                $pst->bindParam(":recurrence_interval_type", $this->recurrence_interval_type);
-                $pst->bindParam(":plan_name", $this->plan_name);
-                $pst->bindParam(":canceled_recurrence", $this->canceled_recurrence);
-                $pst->bindParam(":expiration_trans", $this->expiration_trans);
+                $pst = $con->prepare("insert into tb_clientes (nome,email,senha,transacao,conta_real, conta_demo,status_compra,produto,expiracao,ultima_atualizacao,id_venda,metodo_pagamento,cpf,telefone) values (:nome,:email,:senha,:transacao,:conta_real,:conta_demo,:status_compra,:produto,:expiracao,now(),:id_venda,:metodo_pagamento,:cpf,:telefone)");
+                $pst->bindParam(":nome", $this->client_name);
+                $pst->bindParam(":email", $this->client_email);
+                $pst->bindValue(":senha", md5("kiwi123"));
+                $pst->bindParam(":transacao", $this->code_transaction);
+                $pst->bindValue(":conta_real", 0);
+                $pst->bindValue(":conta_demo", 0);
+                $pst->bindValue(":status_compra", "active");
+                $pst->bindParam(":produto", $this->product_name);
+                $pst->bindParam(":expiracao", $this->expiration_trans);
+                $pst->bindParam(":id_venda", $this->trans_key);
+                $pst->bindValue(":metodo_pagamento", "N/A");
+                $pst->bindValue(":cpf", "N/A");
+                $pst->bindParam(":telefone", $this->client_phone);
+
+                
+                
                 $pst->execute();
+                
+                echo $pst->debugDumpParams();
 
                 if($pst->rowCount() > 0)
                 {
